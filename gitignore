@@ -1,0 +1,62 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python packaging/build output
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Local environment/configuration
+.env
+.env.*
+*.local
+
+# Logs and transient output
+*.log
+logs/
+tmp/
+temp/
+
+# PowerShell transient files
+*.ps1xml
+*.pssc
+*.psrc
+*.psd1.bak
+
+# Windows filesystem artifacts
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Editor/IDE local state
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter/IPython artifacts, if diagnostics are explored interactively
+.ipynb_checkpoints/
+
+# Audio/debug captures or generated diagnostic output
+*.wav
+*.flac
+*.mp3
+*.csv
+*.jsonl

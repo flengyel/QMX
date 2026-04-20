@@ -13,7 +13,7 @@ The scripts are deliberately narrow. They are pre-flight checks and repair aids,
 
 | File | Purpose |
 | --- | --- |
-| `Ensure-FT8-TimeSync.ps1` | Configures and tests Windows Time service so FT8 timing is usable after a rebuild, reboot, or failed `w32tm /resync`. |
+| `Ensure-FT8-TimeSync.ps1` | Configures and tests the Windows Time service so FT8 timing is usable after a rebuild, reboot, or failed `w32tm /resync`. |
 | `qmx_audio_check.py` | Lists Windows audio devices, identifies likely QMX+/USB audio devices, captures a short sample, and reports whether WSJT-X is likely to see silence, the one-dot condition, low audio, good audio, or clipping. |
 
 ## Requirements
@@ -39,21 +39,21 @@ pip install sounddevice numpy
 A virtual environment is recommended:
 
 ```powershell
-cd C:\Users\fleng\vscode\QMX
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install sounddevice numpy
 ```
 
+All commands below assume PowerShell is open at the repository root.
+
 ## Usage
 
 ### 1. Synchronize Windows time for FT8
 
-Open PowerShell as Administrator, then run:
+Open PowerShell as Administrator at the repository root, then run:
 
 ```powershell
-cd C:\Users\fleng\vscode\QMX
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\Ensure-FT8-TimeSync.ps1
 ```
@@ -76,10 +76,9 @@ For FT8, the final offset should be well under +/-1 second.
 
 ### 2. Check the QMX+ receive-audio path
 
-Run from a normal PowerShell session:
+Run from a normal PowerShell session at the repository root:
 
 ```powershell
-cd C:\Users\fleng\vscode\QMX
 .\.venv\Scripts\Activate.ps1
 python .\qmx_audio_check.py
 ```
@@ -190,7 +189,7 @@ Power-cycle or reconnect the QMX+, then restart WSJT-X. Windows may assign a new
 
 ## Repository notes
 
-This repository is intended as a local Windows 11 operating aid for QMX+ FT8 operation. It is especially useful after rebuilding a Windows machine, reconnecting USB audio devices, or diagnosing WSJT-X receive-audio failures.
+This repository is intended as a Windows 11 operating aid for QMX+ FT8 operation. It is especially useful after rebuilding a Windows machine, reconnecting USB audio devices, or diagnosing WSJT-X receive-audio failures.
 
 ## License
 
