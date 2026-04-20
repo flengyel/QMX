@@ -1,13 +1,11 @@
-# QMX Windows FT8 Utilities
+# QMX Windows WSJT-X FT8 Diagnostic Utilities
 
 Small Windows 11 utilities for running WSJT-X with the QRP Labs QMX+.
 
-The project has two jobs:
+The project has two diagnostic and utility scripts:
 
 1. keep Windows time accurate enough for FT8; and
 2. verify the QMX+ USB audio path before launching WSJT-X.
-
-The scripts are deliberately narrow. They are pre-flight checks and repair aids, not a replacement for WSJT-X configuration.
 
 ## Files
 
@@ -36,7 +34,7 @@ The scripts are deliberately narrow. They are pre-flight checks and repair aids,
 pip install sounddevice numpy
 ```
 
-A virtual environment is recommended:
+Python virtual environment setup:
 
 ```powershell
 python -m venv .venv
