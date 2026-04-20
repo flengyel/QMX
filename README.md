@@ -191,4 +191,4 @@ This repository is intended as a Windows 11 operating aid for QMX+ FT8 operation
 
 ## License
 
-No license has been specified.
+MIT License. See [LICENSE](LICENSE).
