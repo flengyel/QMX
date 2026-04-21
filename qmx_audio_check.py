@@ -156,10 +156,11 @@ def test_capture(device_idx, duration, samplerate):
         print("    FT8 decoder tolerates some clipping but prefers headroom.")
     elif rms_db < -50:
         print(f"    Low (RMS {rms_db:+.1f} dBFS). WSJT-X may show 1-2 dots.")
-        print("    On some QMX+ firmware the USB audio level is fixed and")
-        print("    cannot be raised from the radio. FT8 can still decode at")
-        print("    this level if the Windows clock is synchronized. If")
-        print("    decodes fail, check time offset FIRST, not audio level.")
+        print("    The QMX+ may not expose an independent USB RX gain on")
+        print("    current firmware; Windows input-level adjustment may be")
+        print("    your only handle. FT8 can still decode at this level if")
+        print("    the Windows clock is synchronized. If decodes fail, check")
+        print("    time offset FIRST, not audio level.")
     elif rms_db < -35:
         print(f"    Marginal (RMS {rms_db:+.1f} dBFS). Decodes likely.")
         print("    Raise level if convenient; not required.")

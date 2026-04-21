@@ -132,12 +132,14 @@ is within ±1 s of true time*. A 4-second clock offset produces zero decodes
 regardless of audio level. **If WSJT-X decodes nothing while the band is
 clearly active, run `Ensure-FT8-TimeSync.ps1` before investigating audio.**
 
-The QMX+'s USB RX audio level appears to be fixed-gain on current firmware:
-the radio's volume knob and menu (including `SSB → USB Gain`, which governs
-TX only) do not expose an independent USB RX gain. If the level seems low
-and you cannot raise it from the radio, that is expected. Raise the Windows
-input level via `mmsys.cpl → Recording → QMX → Properties → Levels`, or
-accept the low level — FT8 will usually decode anyway.
+On this QMX+ and current firmware, USB RX audio behaved as effectively
+fixed-gain: decode success depended more on clock offset and device
+selection than on Windows input-level adjustment. The QMX+ menu items
+examined (including `SSB → USB Gain`, which governs TX only) did not
+expose an independent USB RX gain control. If the level seems low and
+you cannot raise it from the radio, raise the Windows input level via
+`mmsys.cpl → Recording → QMX → Properties → Levels`, or accept the low
+level — FT8 will usually decode anyway, provided the clock is synced.
 
 ## WSJT-X workflow
 
