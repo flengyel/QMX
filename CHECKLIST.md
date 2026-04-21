@@ -10,10 +10,9 @@ specific-installation data, not generalizable specs.
 2. Connect QMX+ USB to the same PC USB port as last time. Windows tracks
    USB audio identity partly by port path; moving ports forces re-enumeration.
 3. Start Windows.
-4. From elevated PowerShell:
+4. From elevated PowerShell at the repository root:
 
    ```powershell
-   cd C:\Users\fleng\vscode\QMX
    Set-ExecutionPolicy -Scope Process Bypass
    .\Ensure-FT8-TimeSync.ps1
    ```
@@ -95,7 +94,8 @@ mmsys.cpl
 The Playback and Recording tabs in that dialog respond normally when the
 Settings app won't.
 
-If even `mmsys.cpl` won't commit changes, restart the audio service:
+If even `mmsys.cpl` won't commit changes, restart the audio service from
+elevated PowerShell:
 
 ```powershell
 Restart-Service -Name Audiosrv -Force
