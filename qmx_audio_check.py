@@ -16,6 +16,11 @@ Usage
 
 The script is read-only. It does not change Windows defaults, device
 bindings, or anything else. Diagnosis is the intervention.
+
+Important: low audio level alone does NOT explain FT8 decode failure.
+A 4-second Windows clock offset will silently prevent all decodes while
+the audio path looks fine. If WSJT-X decodes nothing, check time first
+with Ensure-FT8-TimeSync.ps1 before chasing audio levels.
 """
 
 import argparse
@@ -24,12 +29,23 @@ import sys
 import numpy as np
 import sounddevice as sd
 
+# Substrings that identify a QMX+ or similar radio device in Windows.
+# 'digital audio interface' is how the QMX+ enumerates on observed systems;
+# the others are historical or cover related QRP Labs radios.
+RADIO_HINTS = (
+    'digital audio interface',
+    'usb audio codec',
+    'qmx',
+    'qdx',
+)
+
 
 def list_devices(pattern):
     devices = sd.query_devices()
     print(f"\n{'Idx':<4} {'I/O':<7} {'Ch(i/o)':<9} {'SR':<7} Name")
     print("-" * 72)
     input_candidates = []
+    pattern_l = pattern.lower() if pattern else ''
     for idx, d in enumerate(devices):
         io = []
         if d['max_input_channels'] > 0:
@@ -40,7 +56,14 @@ def list_devices(pattern):
         ch = f"{d['max_input_channels']}/{d['max_output_channels']}"
         sr = f"{int(d['default_samplerate'])}"
         marker = ''
-        if pattern and pattern.lower() in d['name'].lower():
+        name_l = d['name'].lower()
+        # Match either the user-supplied pattern OR any known radio hint,
+        # so the default case finds the QMX+ without requiring --pattern.
+        matches = (
+            (pattern_l and pattern_l in name_l)
+            or any(h in name_l for h in RADIO_HINTS)
+        )
+        if matches:
             if d['max_input_channels'] > 0:
                 marker = '  <-- input candidate'
                 input_candidates.append(idx)
@@ -57,15 +80,14 @@ def check_default_devices():
         do = sd.query_devices(kind='output')
         print(f"Windows default input:  {di['name']}")
         print(f"Windows default output: {do['name']}")
-        radio_hints = ('usb audio codec', 'qmx', 'qdx')
-        if any(h in do['name'].lower() for h in radio_hints):
+        if any(h in do['name'].lower() for h in RADIO_HINTS):
             print()
             print("  WARNING: default OUTPUT looks like a radio device.")
             print("  FXSound and other system audio processors target the")
             print("  default output. Set speakers/headphones as default in")
             print("  Windows Sound settings; WSJT-X will still find the")
             print("  radio by explicit device selection.")
-        if any(h in di['name'].lower() for h in radio_hints):
+        if any(h in di['name'].lower() for h in RADIO_HINTS):
             print()
             print("  Note: default INPUT is a radio device. Harmless for")
             print("  WSJT-X if explicitly selected, but any app that grabs")
@@ -114,6 +136,10 @@ def test_capture(device_idx, duration, samplerate):
     if abs(dc) > 0.01:
         print(f"  DC offset: {dc:+.4f} (unusual; possible driver issue)")
 
+    # Classification. Bands are contiguous on RMS dBFS; peak handles the
+    # silent/clipping edges. The "Low but probably adequate" band reflects
+    # empirical observation: peak ~-40 dBFS, RMS ~-55 dBFS DID decode FT8
+    # once the Windows clock was within tolerance.
     print("\n  Interpretation:")
     if peak < 1e-5:
         print("    SILENT. No audio reaching the decoder. Path is broken.")
@@ -128,18 +154,35 @@ def test_capture(device_idx, duration, samplerate):
     elif peak > 0.97:
         print("    CLIPPING. Reduce radio AF output or Windows input level.")
         print("    FT8 decoder tolerates some clipping but prefers headroom.")
-    elif rms_db < -40:
-        print("    Low. WSJT-X would show 1-2 dots. Raise level.")
-    elif -35 <= rms_db <= -15:
-        print("    Good. WSJT-X should show 3-4 green dots.")
+    elif rms_db < -50:
+        print(f"    Low (RMS {rms_db:+.1f} dBFS). WSJT-X may show 1-2 dots.")
+        print("    On some QMX+ firmware the USB audio level is fixed and")
+        print("    cannot be raised from the radio. FT8 can still decode at")
+        print("    this level if the Windows clock is synchronized. If")
+        print("    decodes fail, check time offset FIRST, not audio level.")
+    elif rms_db < -35:
+        print(f"    Marginal (RMS {rms_db:+.1f} dBFS). Decodes likely.")
+        print("    Raise level if convenient; not required.")
+    elif rms_db <= -15:
+        print(f"    Good (RMS {rms_db:+.1f} dBFS). WSJT-X should show 3-4 dots.")
     else:
-        print(f"    Level present at {rms_db:+.1f} dBFS RMS.")
+        print(f"    Hot (RMS {rms_db:+.1f} dBFS) but not clipping.")
+        print("    Consider reducing level for headroom.")
+
+    # Diagnostic reminder the script itself cannot check.
+    print()
+    print("  NOTE: if WSJT-X shows no decodes despite an active band, the")
+    print("  most common cause is a Windows clock offset, not audio level.")
+    print("  Run Ensure-FT8-TimeSync.ps1 and confirm offset is under 1 sec.")
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
-    ap.add_argument('--pattern', default='CODEC',
-                    help="name substring for QMX+ (try 'CODEC', 'USB', 'QMX')")
+    ap.add_argument(
+        '--pattern', default='Digital Audio Interface',
+        help="name substring to match (default matches observed QMX+ naming; "
+             "try 'QMX', 'USB', 'CODEC' if your device enumerates differently)",
+    )
     ap.add_argument('--duration', type=float, default=3.0)
     ap.add_argument('--samplerate', type=int, default=48000,
                     help='48000 matches WSJT-X')
@@ -158,11 +201,16 @@ def main():
     if len(candidates) == 1:
         test_capture(candidates[0], args.duration, args.samplerate)
     elif len(candidates) > 1:
-        print(f"\nMultiple input candidates matched '{args.pattern}': "
-              f"{candidates}. Re-run with --device N.")
+        print(f"\nMultiple input candidates matched: {candidates}. "
+              f"Re-run with --device N to test one specifically.")
+        print("Windows enumerates the same physical device through multiple")
+        print("audio APIs (MME, WDM-KS, WASAPI); any of them should work.")
+        print("Prefer the 48000 Hz instance to match WSJT-X natively.")
     else:
-        print(f"\nNo input device matched pattern '{args.pattern}'.")
-        print("Try --pattern USB, --pattern Audio, or --pattern '' for all.")
+        print(f"\nNo input device matched pattern '{args.pattern}' "
+              f"or known radio hints {RADIO_HINTS}.")
+        print("Try --pattern with a substring from the device list above,")
+        print("or --pattern '' to match every device.")
 
 
 if __name__ == '__main__':
