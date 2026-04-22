@@ -45,8 +45,9 @@ def list_devices(pattern):
     print(f"\n{'Idx':<4} {'I/O':<7} {'Ch(i/o)':<9} {'SR':<7} Name")
     print("-" * 72)
     input_candidates = []
-    pattern_l = pattern.lower() if pattern else ''
-    for idx, d in enumerate(devices):
+    pattern_l = pattern.lower() if pattern is not None else ''
+    match_all = pattern == ''
+    for idx, d in enumerate(devices): 
         io = []
         if d['max_input_channels'] > 0:
             io.append('in')
@@ -59,8 +60,12 @@ def list_devices(pattern):
         name_l = d['name'].lower()
         # Match either the user-supplied pattern OR any known radio hint,
         # so the default case finds the QMX+ without requiring --pattern.
+        # Match every device (when the user passes --pattern ''), the
+        # user-supplied pattern, or any known radio hint. The hint list
+        # means the default case finds the QMX+ without requiring --pattern.
         matches = (
-            (pattern_l and pattern_l in name_l)
+            match_all
+            or (pattern_l and pattern_l in name_l)
             or any(h in name_l for h in RADIO_HINTS)
         )
         if matches:
