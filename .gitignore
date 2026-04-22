@@ -54,9 +54,11 @@ $RECYCLE.BIN/
 # Jupyter/IPython artifacts, if diagnostics are explored interactively
 .ipynb_checkpoints/
 
-# Audio/debug captures or generated diagnostic output
+# Audio captures (can be large; diagnostic-only)
 *.wav
 *.flac
 *.mp3
-*.csv
-*.jsonl
+
+# Local diagnostic output directories
+captures/
+diagnostics/
