@@ -8,6 +8,30 @@ The project has two diagnostic and utility scripts:
 2. verify the QMX+ USB audio path before launching WSJT-X.
 
 Operating procedure is documented separately in [CHECKLIST.md](CHECKLIST.md).
+The troubleshooting narrative that produced these tools is in
+[NOTES.md](NOTES.md).
+
+## Scope
+
+This is a personal operating setup, not a general-purpose toolkit. The
+scripts, defaults, and checklist were tuned for one specific configuration
+and are published in case any of it is useful to someone else in a similar
+situation. Accurate as of:
+
+| Component | Version / detail |
+| --- | --- |
+| OS | Windows 11 |
+| Radio | QRP Labs QMX+ |
+| QMX+ firmware | 1.03.002 |
+| Software | WSJT-X Improved 3.0.0 |
+| Antenna | AlexLoop magnetic loop (2nd floor, urban courtyard) |
+| Band / mode | 30 m FT8, 10.136 MHz |
+| Other audio software present | FXSound |
+
+If your stack differs substantially, the checklist specifics will not map
+cleanly. The underlying lessons — check clock before audio level, use
+explicit device names rather than Windows defaults, beware system-wide
+audio processors — generalize. The step-by-step procedures may not.
 
 ## Files
 
@@ -37,7 +61,8 @@ Operating procedure is documented separately in [CHECKLIST.md](CHECKLIST.md).
 pip install sounddevice numpy
 ```
 
-Python virtual environment setup:
+Python virtual environment setup (the `.venv/` directory is gitignored;
+create it yourself, do not commit it):
 
 ```powershell
 python -m venv .venv
