@@ -136,39 +136,46 @@ def test_capture(device_idx, duration, samplerate):
     if abs(dc) > 0.01:
         print(f"  DC offset: {dc:+.4f} (unusual; possible driver issue)")
 
-    # Classification. Bands are contiguous on RMS dBFS; peak handles the
-    # silent/clipping edges. The "Low but probably adequate" band reflects
-    # empirical observation: peak ~-40 dBFS, RMS ~-55 dBFS DID decode FT8
-    # once the Windows clock was within tolerance.
+    # Classification. Labels describe the measurement, not a judgment about
+    # operational fitness, because WSJT-X decodes reliably at absolute audio
+    # levels the dBFS scale would call low. The accompanying notes explain
+    # what each band tends to indicate; the operator interprets in context.
+    # Bands are on peak dBFS so the thresholds match the meter WSJT-X users
+    # intuitively compare against.
     print("\n  Interpretation:")
     if peak < 1e-5:
-        print("    SILENT. No audio reaching the decoder. Path is broken.")
+        print(f"    SILENT (peak {peak_db:+.1f} dBFS).")
+        print("    No audio reaching the decoder. Path is broken.")
         print("    Check: USB cable, radio AF output, Windows privacy")
         print("    settings (microphone access), device not disabled.")
     elif peak < 1e-3:
-        print("    THIS IS THE ONE-DOT CONDITION.")
-        print("    Signal present but below useful threshold. Likely:")
-        print("    - another process holds the device in exclusive mode")
-        print("    - wrong device selected (system noise floor only)")
-        print("    - radio AF output turned down")
+        print(f"    VERY QUIET (peak {peak_db:+.1f} dBFS).")
+        print("    Usually indicates wrong device selected, or another")
+        print("    process holding the device in exclusive mode. Check")
+        print("    device selection before anything else.")
     elif peak > 0.97:
-        print("    CLIPPING. Reduce radio AF output or Windows input level.")
-        print("    FT8 decoder tolerates some clipping but prefers headroom.")
-    elif rms_db < -50:
-        print(f"    Low (RMS {rms_db:+.1f} dBFS). WSJT-X may show 1-2 dots.")
-        print("    The QMX+ may not expose an independent USB RX gain on")
-        print("    current firmware; Windows input-level adjustment may be")
-        print("    your only handle. FT8 can still decode at this level if")
-        print("    the Windows clock is synchronized. If decodes fail, check")
-        print("    time offset FIRST, not audio level.")
-    elif rms_db < -35:
-        print(f"    Marginal (RMS {rms_db:+.1f} dBFS). Decodes likely.")
-        print("    Raise level if convenient; not required.")
-    elif rms_db <= -15:
-        print(f"    Good (RMS {rms_db:+.1f} dBFS). WSJT-X should show 3-4 dots.")
+        print(f"    CLIPPING (peak {peak_db:+.1f} dBFS).")
+        print("    Reduce radio AF output or Windows input level. FT8")
+        print("    decoder tolerates some clipping but prefers headroom.")
+    elif peak < 1e-2:
+        # Roughly -40 dBFS peak. Observed to decode FT8 reliably on this
+        # setup once the Windows clock was synced.
+        print(f"    QUIET (peak {peak_db:+.1f} dBFS, RMS {rms_db:+.1f} dBFS).")
+        print("    Low in absolute dBFS terms, but this level has been")
+        print("    observed to decode FT8 reliably when the Windows clock")
+        print("    is synchronized. The QMX+ may not expose an independent")
+        print("    USB RX gain on current firmware, so this may simply be")
+        print("    the level your radio provides. Windows input-level")
+        print("    adjustment may raise it; Windows-internal processing")
+        print("    cannot. If decodes fail, check clock offset FIRST.")
+    elif peak < 0.178:  # ~ -15 dBFS peak
+        print(f"    NORMAL (peak {peak_db:+.1f} dBFS, RMS {rms_db:+.1f} dBFS).")
+        print("    Comfortable operating range. WSJT-X typically shows 3-4")
+        print("    green dots at this level.")
     else:
-        print(f"    Hot (RMS {rms_db:+.1f} dBFS) but not clipping.")
-        print("    Consider reducing level for headroom.")
+        print(f"    HOT (peak {peak_db:+.1f} dBFS, RMS {rms_db:+.1f} dBFS).")
+        print("    High but not clipping. Consider reducing for headroom,")
+        print("    especially if you see occasional clipping on peaks.")
 
     # Diagnostic reminder the script itself cannot check.
     print()
