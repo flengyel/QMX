@@ -37,7 +37,7 @@ second. At a 4-second offset, WSJT-X can have usable audio and still
 decode nothing.
 
 **Fix.** Enabled `w32time`, configured NTP peers, and forced a resync.
-Offset dropped to tens of milliseconds. Decodes started immediately at
+Offset dropped to about 13 ms. Decodes started immediately at
 the same QMX+ USB audio level measured before the resync.
 
 — WM2D, April 20, 2026

@@ -121,7 +121,7 @@ one.
 python .\qmx_audio_check.py
 
 # Explicit device index if multiple QMX candidates appear
-python .\qmx_audio_check.py --device 29
+python .\qmx_audio_check.py --device N
 
 # Force clock resync
 .\Ensure-FT8-TimeSync.ps1
