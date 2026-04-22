@@ -1,22 +1,27 @@
 # QMX Windows WSJT-X FT8 Diagnostic Utilities
 
-Small Windows 11 utilities for running WSJT-X Improved with the QRP Labs QMX+.
-
-The project has two diagnostic and utility scripts:
+Windows 11 utilities for running WSJT-X Improved with the QRP Labs QMX+:
 
 1. keep Windows time accurate enough for FT8; and
 2. verify the QMX+ USB audio path before launching WSJT-X.
 
-Operating procedure is documented separately in [CHECKLIST.md](CHECKLIST.md).
-The troubleshooting narrative that produced these tools is in
-[NOTES.md](NOTES.md).
+The QMX+ LCD has an audio-level indicator at the top-left character,
+under the 'A' VFO symbol. A single dot — the *one-dot condition* —
+means little or no transmit audio drive is reaching the QMX+ over USB.
+Typical causes: wrong Windows default audio device, USB re-enumeration
+after a reconnect, FXSound APO interference, exclusive-mode contention
+from another application. `qmx_audio_check.py` measures receive audio
+(QMX+ → PC), the opposite direction through the same USB interface. It
+does not test TX audio directly, but a missing or silent RX device is
+strong evidence that USB enumeration or device selection needs to be
+fixed before debugging WSJT-X TX.
+
+Operating procedure is in [CHECKLIST.md](CHECKLIST.md). Debugging
+narrative is in [NOTES.md](NOTES.md).
 
 ## Scope
 
-This is a personal operating setup, not a general-purpose toolkit. The
-scripts, defaults, and checklist were tuned for one specific configuration
-and are published in case any of it is useful to someone else in a similar
-situation. Accurate as of:
+Tuned for one specific configuration:
 
 | Component | Version / detail |
 | --- | --- |
@@ -28,17 +33,12 @@ situation. Accurate as of:
 | Band / mode | 30 m FT8, 10.136 MHz |
 | Other audio software present | FXSound |
 
-If your stack differs substantially, the checklist specifics will not map
-cleanly. The underlying lessons — check clock before audio level, use
-explicit device names rather than Windows defaults, beware system-wide
-audio processors — generalize. The step-by-step procedures may not.
-
 ## Files
 
 | File | Purpose |
 | --- | --- |
 | `Ensure-FT8-TimeSync.ps1` | Configures and tests the Windows Time service so FT8 timing is usable after a rebuild, reboot, or failed `w32tm /resync`. |
-| `qmx_audio_check.py` | Lists Windows audio devices, identifies likely QMX+/USB audio devices, captures a short sample, and reports whether WSJT-X is likely to see silence, the one-dot condition, low audio, good audio, or clipping. |
+| `qmx_audio_check.py` | Lists Windows audio devices, identifies likely QMX+/USB audio devices, captures a short sample, and reports where its peak level falls on a measurement scale from `SILENT` through `CLIPPING`. |
 | `CHECKLIST.md` | Operating checklist for routine WSJT-X + QMX+ operation, including what not to change. |
 
 ## Requirements
@@ -125,7 +125,7 @@ Useful variants:
 ```powershell
 python .\qmx_audio_check.py --pattern QMX
 python .\qmx_audio_check.py --pattern USB
-python .\qmx_audio_check.py --device 29
+python .\qmx_audio_check.py --device N
 python .\qmx_audio_check.py --duration 5
 python .\qmx_audio_check.py --samplerate 48000
 ```
@@ -137,34 +137,30 @@ Prefer the 48 kHz WASAPI instance to match WSJT-X natively.
 
 ## Audio interpretation
 
-`qmx_audio_check.py` reports peak level, RMS level, and RMS dBFS. It then
-classifies the result.
+`qmx_audio_check.py` reports peak level, RMS level, and peak dBFS, and
+classifies the result by peak dBFS.
 
-| Result | RMS band | Meaning | Action |
-| --- | --- | --- | --- |
-| `SILENT` | peak < -100 dBFS | No usable audio reached the decoder. | Check USB cable, QMX+ AF output, Windows privacy settings, device disabled. |
-| `ONE-DOT CONDITION` | peak < -60 dBFS | Signal present but below useful threshold. | Check wrong device selection, exclusive-mode contention, low QMX+ AF output. |
-| `Low` | RMS < -50 dBFS | WSJT-X may show 1-2 dots. | Usually decodes if clock is synced. Check time before level. |
-| `Marginal` | -50 to -35 dBFS | Decodes likely. | Raise if convenient; not required. |
-| `Good` | -35 to -15 dBFS | WSJT-X should show 3-4 green dots. | Proceed. |
-| `Hot` | > -15 dBFS | High but not clipping. | Consider reducing for headroom. |
-| `CLIPPING` | peak > -0.3 dBFS | Near full scale. | Reduce QMX+ AF output or Windows input level. |
+| Label | Peak band | What it tends to indicate |
+| --- | --- | --- |
+| `SILENT` | peak < −100 dBFS | No audio reaching the decoder. Broken path: USB cable, radio AF output, Windows privacy, device disabled. |
+| `VERY QUIET` | peak < −60 dBFS | Usually wrong device selected or exclusive-mode contention. Check device selection first. |
+| `QUIET` | peak < −40 dBFS | Low in dBFS terms but observed to decode FT8 reliably when the Windows clock is synchronized. On this QMX+, this is the native output level. |
+| `NORMAL` | −40 to −15 dBFS | Comfortable operating range. WSJT-X typically shows 3–4 green dots. |
+| `HOT` | > −15 dBFS | High but not clipping. Consider reducing for headroom. |
+| `CLIPPING` | peak > −0.3 dBFS | Near full scale. Reduce QMX+ AF output or Windows input level. |
 
-### Important: level is not the usual culprit
+### Level is not the usual culprit
 
-Empirically, FT8 decodes reliably at RMS ≈ −55 dBFS *when the Windows clock
-is within ±1 s of true time*. A 4-second clock offset produces zero decodes
-regardless of audio level. **If WSJT-X decodes nothing while the band is
-clearly active, run `Ensure-FT8-TimeSync.ps1` before investigating audio.**
+FT8 decodes reliably at peak ≈ −40 dBFS (the script's `NORMAL` band)
+when the Windows clock is within ±1 s of true time. A 4-second clock
+offset produces zero decodes regardless of audio level. If WSJT-X
+decodes nothing while the band is active, run `Ensure-FT8-TimeSync.ps1`
+before investigating audio.
 
-On this QMX+ and current firmware, USB RX audio behaved as effectively
-fixed-gain: decode success depended more on clock offset and device
-selection than on Windows input-level adjustment. The QMX+ menu items
-examined (including `SSB → USB Gain`, which governs TX only) did not
-expose an independent USB RX gain control. If the level seems low and
-you cannot raise it from the radio, raise the Windows input level via
-`mmsys.cpl → Recording → QMX → Properties → Levels`, or accept the low
-level — FT8 will usually decode anyway, provided the clock is synced.
+On this setup, USB RX audio from the QMX+ was observed to be
+effectively fixed-gain. No USB RX gain control was found in the
+firmware 1.03.002 menu; `SSB → USB Gain` affected TX only. Peak ≈ −40
+dBFS is the native level here, and no adjustment is required.
 
 ## WSJT-X workflow
 
@@ -189,13 +185,10 @@ when Windows renumbers the device.
 
 ## Windows default audio warning
 
-The QMX+ should normally not be the Windows default output device. System
-audio processors such as FxSound target the default output. If the radio
-becomes the default Windows output, ordinary system audio can be routed
-toward the radio audio path.
-
-Set speakers or headphones as the Windows default output. Then configure
-WSJT-X to use the QMX+ explicitly inside WSJT-X.
+Do not make the QMX+ the Windows default output device. System audio
+processors such as FXSound target the default output; Windows system
+sounds can be routed to the QMX+ audio device. Set speakers or
+headphones as the default; select the QMX+ explicitly inside WSJT-X.
 
 ## Troubleshooting
 
@@ -211,8 +204,7 @@ Then run the script again from the same Administrator PowerShell session.
 
 ### The time-sync script says Administrator rights are required
 
-Open PowerShell as Administrator. The script intentionally exits if not
-elevated.
+Open PowerShell as Administrator. The script exits if not elevated.
 
 ### `w32tm /resync` reports no time data
 
@@ -227,15 +219,35 @@ Run again with the specific input index:
 python .\qmx_audio_check.py --device N
 ```
 
-### The audio script reports the one-dot condition
+### QMX+ LCD shows one dot (the one-dot condition)
 
-The input is not fully dead, but it is below useful level. Most likely
-causes:
+QMX+ LCD top-left character, under the 'A' VFO symbol, shows a single
+dot. The QMX+ is receiving no audio from the PC over USB for
+transmission. Likely causes:
 
-- wrong input device;
-- another application holding the device in exclusive mode;
-- QMX+ AF output too low; or
-- stale device numbering after USB reconnect.
+- WSJT-X output is not set to the QMX+ device;
+- Windows default output is FXSound or another non-QMX+ device, and
+  WSJT-X is configured to "use default";
+- QMX+ re-enumerated to a new device number since WSJT-X last bound to it;
+- another application is holding the device in exclusive mode;
+- QMX+ USB audio was redirected by an FXSound APO update or Windows
+  update.
+
+Diagnostic sequence:
+
+1. In WSJT-X, `File → Settings → Audio`, confirm Output is set
+   explicitly to `Digital Audio Interface (... QMX Transceiver)`, not
+   `Default`.
+2. Run `python .\qmx_audio_check.py` to check the RX side. If the script
+   reports `VERY QUIET` or `SILENT`, the USB audio chain is broken in
+   both directions; fix device selection and routing before returning
+   to WSJT-X.
+3. If the script reports `QUIET` or `NORMAL` but the QMX+ still shows
+   one dot, the TX-specific output binding in WSJT-X is wrong. Reselect
+   the QMX+ output device and restart WSJT-X if necessary.
+
+A `QUIET` result on its own is the native QMX+ RX output level and is
+not a problem.
 
 ### The QMX+ device is absent from WSJT-X
 
@@ -266,21 +278,13 @@ This forces the audio stack to re-initialize and drops stale APO hooks.
 Any app currently using audio will briefly lose its connection and
 reconnect.
 
-## Scope and safety
+## Safety
 
-`Ensure-FT8-TimeSync.ps1` changes only Windows Time service configuration
-and queries time status.
+`Ensure-FT8-TimeSync.ps1` changes only Windows Time service
+configuration and queries time status.
 
-`qmx_audio_check.py` is read-only. It does not change Windows defaults,
-WSJT-X settings, device bindings, or QMX+ settings. It captures a short
-in-memory audio sample only to compute level statistics.
-
-## Repository notes
-
-This repository is intended as a Windows 11 operating aid for QMX+ FT8
-operation. It is especially useful after rebuilding a Windows machine,
-reconnecting USB audio devices, or diagnosing WSJT-X receive-audio
-failures.
+`qmx_audio_check.py` is read-only. It captures a short in-memory audio
+sample to compute level statistics and changes nothing.
 
 ## License
 
