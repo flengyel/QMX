@@ -58,11 +58,10 @@ def list_devices(pattern):
         sr = f"{int(d['default_samplerate'])}"
         marker = ''
         name_l = d['name'].lower()
-        # Match either the user-supplied pattern OR any known radio hint,
-        # so the default case finds the QMX+ without requiring --pattern.
-        # Match every device (when the user passes --pattern ''), the
-        # user-supplied pattern, or any known radio hint. The hint list
-        # means the default case finds the QMX+ without requiring --pattern.
+        # Match every device when the user passes --pattern '', otherwise
+        # match the user-supplied pattern or any known radio hint. The hint
+        # list means the default case finds the QMX+ without requiring
+        # --pattern.
         matches = (
             match_all
             or (pattern_l and pattern_l in name_l)
